@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useState } from "react";
-import io from "socket.io-client";
-import "./App.css";
+import React, { useRef, useEffect, useState } from 'react';
+import './App.css';
 
 function App() {
   const socket = useRef(null); // Use useRef for sockets to avoid unnecessary re-renders
@@ -8,100 +7,43 @@ function App() {
   const msgRef = useRef(null);
   const areaRef = useRef(null);
   const [messages, setMessages] = useState([]); // Use useState for message state
-  const [userName, setUsername] = useState("");
 
   useEffect(() => {
-    socket.current = io("http://localhost:3000", {
-      transports: ["websocket", "polling"],
+    socket.current = io('http://localhost:3000', { transports: ['websocket', 'polling'] });
+
+    socket.current.on('message', (message, id) => {
+      if (id !== socket.current.id) {
+        setMessages((prevMessages) => [...prevMessages, { message, senderId: id }]);
+      }
     });
 
-    if (userName !== "") {
-      socket.current.on("message", (message, id) => {
-        if (id !== socket.current.id) {
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { message, senderId: id },
-          ]);
-        }
-      });
-    }
-
-    return () => {
-      if (socket.current) {
-        socket.current.disconnect();
-      }
-    };
+    return () => socket.current.disconnect(); // Cleanup on unmount
   }, []);
 
-  const handleUsernameChange = (e) => {
-    setUsername(e.target.value);
-  };
-
   const clickHandle = () => {
-    if (!socket.current || !socket.current.connected) {
-      // Check if the socket is available and connected
-      alert("Socket connection is not available.");
-      return;
-    }
-
-    if (userName === "") {
-      alert("Please enter a username before sending messages.");
-      msgRef.current.value = "";
-      return;
-    }
-
     const msg = msgRef.current.value;
 
-    socket.current.emit("user-message", {
-      message: msg,
-      senderName: userName,
-      senderId: socket.current.id,
-    });
-
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { message: msg, senderName: userName, senderId: socket.current.id },
-    ]);
-    msgRef.current.value = "";
+    socket.current.emit('user-message', msg);
+    setMessages((prevMessages) => [...prevMessages, { message: msg, senderId: socket.current.id }]);
+    msgRef.current.value = '';
   };
 
   return (
     <>
       <div className="heading mt-5 mb-10 ml-15 mr-15 w-100 h-10 rounded text-center">
-        <h1 className="mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
-          Chatt
-        </h1>
+        <h1 className="mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white">Chatt</h1>
       </div>
-      <div
-        id="area"
-        ref={areaRef}
-        className="container bg-slate-200 message-list">
+      <div id="area" ref={areaRef} className="container bg-slate-200 message-list">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={
-              message.senderId === socket.current.id
-                ? "message self"
-                : "message other"
-            }>
-            <div className="message-sender">{message.senderName}</div>
+            className={message.senderId === socket.current.id ? 'message self' : 'message other'}
+          >
             {message.message}
           </div>
         ))}
       </div>
       <div className="msg-btn mt-10">
-        <div className="grid gap-6 mb-6 md:grid-cols-2">
-          <div>
-            <input
-              type="text"
-              value={userName}
-              onChange={handleUsernameChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Enter your username"
-              required
-            />
-          </div>
-        </div>
         <div className="grid gap-6 mb-6 md:grid-cols-2">
           <div>
             <input
@@ -114,12 +56,8 @@ function App() {
             />
           </div>
         </div>
-        <button
-          type="submit"
-          id="send"
-          onClick={clickHandle}
-          className="text-white bg-blue-700 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-          Send
+        <button type="submit" id="send" onClick={clickHandle} className="text-white bg-blue-700 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+          Submit
         </button>
       </div>
     </>
